@@ -73,10 +73,12 @@ public class CameraOpMode extends LinearOpMode {
 
             if (yellowBlockDetected) {
 
+                // Map detectedBlockX to spinServo range 0 to 1
                 double spinPosition = mapToServoRange(detectedBlockX, 0, 640, 0, 1);
                 spinServo.setPosition(spinPosition);
 
-                double upDownPosition = mapToServoRange(detectedBlockY, 0, 480, 0, 1);
+                // Map detectedBlockY to upDownServo range 0.3 to 0.7 (corrected values)
+                double upDownPosition = mapToServoRange(detectedBlockY, 0, 480, 0.3, 0.7);
                 upDownServo.setPosition(upDownPosition);
             }
 
@@ -90,19 +92,26 @@ public class CameraOpMode extends LinearOpMode {
         thresholdMat.release();
     }
 
+    // Map the detected position to a servo range, clamped properly
     private double mapToServoRange(double value, double minInput, double maxInput, double minOutput, double maxOutput) {
+        // Clamp value between minInput and maxInput
+        value = Math.max(minInput, Math.min(maxInput, value));
         return (value - minInput) / (maxInput - minInput) * (maxOutput - minOutput) + minOutput;
     }
 
+    // OpenCV pipeline for detecting yellow blocks
     private class YellowBlockDetectionPipeline extends OpenCvPipeline {
 
         @Override
         public Mat processFrame(Mat input) {
 
+            // Convert RGB frame to HSV for color detection
             Imgproc.cvtColor(input, hsvMat, Imgproc.COLOR_RGB2HSV);
 
+            // Create a binary mask where yellow is detected
             Core.inRange(hsvMat, YELLOW_LOWER, YELLOW_UPPER, thresholdMat);
 
+            // Find contours in the thresholded image
             List<MatOfPoint> contours = new ArrayList<>();
             Mat hierarchy = new Mat();
             Imgproc.findContours(thresholdMat, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
